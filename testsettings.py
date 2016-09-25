@@ -129,7 +129,7 @@ TORNADO = {
     # 'port': 8080,
     'handlers': [
         (r'%s(.*)' % STATIC_URL, tornado.web.StaticFileHandler, {'path': STATIC_ROOT}),
-        tornado_websockets.django_app
+        tornado_websockets.django_app()
     ],
     'settings': {
         'autoreload': True,

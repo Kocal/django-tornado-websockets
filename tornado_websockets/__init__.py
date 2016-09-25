@@ -4,5 +4,8 @@ __version__ = '.'.join(__version_info__)
 import django.core.handlers.wsgi
 import tornado.wsgi
 
-django_app = tornado.wsgi.WSGIContainer(django.core.handlers.wsgi.WSGIHandler())
-django_app = ('.*', tornado.web.FallbackHandler, dict(fallback=django_app))
+def django_app():
+    app = tornado.wsgi.WSGIContainer(django.core.handlers.wsgi.WSGIHandler())
+    app = ('.*', tornado.web.FallbackHandler, dict(fallback=app))
+
+    return app

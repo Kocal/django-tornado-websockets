@@ -65,7 +65,7 @@ file.
         # ...
         'handlers': [
             # ...
-            tornado_websockets.django_app,  # django_app is using a "wildcard" route, so it should be the last element
+            tornado_websockets.django_app(),  # django_app is using a "wildcard" route, so it should be the last element
         ],
     }
 
