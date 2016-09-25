@@ -1,0 +1,3 @@
+[submodule "tornado_websockets/static/tornado_websockets/dtws-client"]
+	path = tornado_websockets/static/tornado_websockets/dtws-client
+	url = https://github.com/Kocal/dtws-client.git
