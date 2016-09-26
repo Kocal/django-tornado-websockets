@@ -1,10 +1,8 @@
 # coding: utf-8
 
 from six import string_types
-
-import tornado_websockets.exceptions
-import tornado_websockets.tornadowrapper
-import tornado_websockets.websockethandler
+from tornado_websockets import tornadowrapper, websockethandler
+from tornado_websockets.exceptions import *
 
 
 class WebSocket(object):
@@ -16,16 +14,22 @@ class WebSocket(object):
         self.events = {}
         self.handlers = []
         self.context = None
+        self.modules = []
 
         self.path = path.strip()
         self.path = self.path if self.path.startswith('/') else '/' + self.path
 
         if add_to_handlers is True:
-            tornado_websockets.tornadowrapper.TornadoWrapper.add_handlers([
-                ('/ws' + self.path, tornado_websockets.websockethandler.WebSocketHandler, {
+            tornadowrapper.TornadoWrapper.add_handlers([
+                ('/ws' + self.path, websockethandler.WebSocketHandler, {
                     'websocket': self
                 })
             ])
+
+    def bind(self, module):
+        self.modules.append(module)
+        module._websocket = self
+        module.initialize()
 
     def on(self, callback):
         """
@@ -46,14 +50,13 @@ class WebSocket(object):
         """
 
         if not callable(callback):
-            raise tornado_websockets.exceptions.NotCallableError(callback)
+            raise NotCallableError(callback)
 
         event = callback.__name__
 
         if self.events.get(event) is not None:
-            raise tornado_websockets.exceptions.WebSocketEventAlreadyBinded(event, self.path)
+            raise WebSocketEventAlreadyBinded(event, self.path)
 
-        # print('-- Binding "%s" event for "%s" path with callback "%s"' % (event, self.path, callback))
         self.events[event] = callback
         return callback
 
@@ -79,8 +82,6 @@ class WebSocket(object):
         if not data:
             data = dict()
 
-        # print('-- WebSocket.emit(%s, %s)' % (event, data))
-
         if not isinstance(event, string_types):
             raise TypeError('Event should be a string.')
 
@@ -88,12 +89,11 @@ class WebSocket(object):
             raise TypeError('Data should be a string or a dictionary.')
 
         if not self.handlers:
-            raise tornado_websockets.exceptions.EmitHandlerError(event, self.path)
+            raise EmitHandlerError(event, self.path)
 
         for handler in self.handlers:
-            if not isinstance(handler, tornado_websockets.websockethandler.WebSocketHandler):
-                raise tornado_websockets.exceptions.InvalidInstanceError(
-                    handler, 'tornado_websockets.websockethandler.WebSocketHandler')
+            if not isinstance(handler, websockethandler.WebSocketHandler):
+                raise InvalidInstanceError(handler, 'tornado_websockets.websockethandler.WebSocketHandler')
 
             if isinstance(data, string_types):
                 data = {'message': data}
