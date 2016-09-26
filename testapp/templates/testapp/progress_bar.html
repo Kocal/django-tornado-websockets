@@ -10,6 +10,10 @@
         body {
             padding-top: 60px;
         }
+
+        .progress-bar {
+            min-width: 2em;
+        }
     </style>
 </head>
 <body>
@@ -17,27 +21,44 @@
 <div class="container">
     <div id="progressbar"></div>
     <button id="btnStart" class="btn btn-primary" disabled>Start</button>
+    <button id="btnReset" class="btn">Reset</button>
 </div>
-
-
 
 {% load static %}
 <script src="{% static 'tornado_websockets/tornadowebsocket-es6.js' %}"></script>
 <script src="{% static 'tornado_websockets/modules/progress_bar-es6.js' %}"></script>
 <script>
-    let tws = new TornadoWebSocket('my_progress_bar')
+    let tws = new TornadoWebSocket('module_progressbar')
     let progressBar = new ModuleProgressBar('foo')
 
     tws.bind(progressBar)
-    progressBar.set_engine(new ModuleProgressBar.EngineBootstrap(document.querySelector('#progressbar')))
+    progressBar.set_engine(
+            new ModuleProgressBar.EngineBootstrap(document.querySelector('#progressbar'), {
+                // escape {} because of Django templates, gonna see for '{progress}' implementation?
+                'progression_format': '\{\{progress\}\}%'
+            })
+    )
 
     let $btnStart = document.querySelector('#btnStart');
+    let $btnReset = document.querySelector('#btnReset');
 
     tws.on('open', _ => {
         $btnStart.removeAttribute('disabled')
 
         $btnStart.addEventListener('click', _ => {
+            $btnStart.setAttribute('disabled', 'disabled')
+            $btnReset.setAttribute('disabled', 'disabled')
             progressBar.emit('start')
+        })
+
+        $btnReset.addEventListener('click', _ => {
+            progressBar.emit('reset')
+            $btnReset.setAttribute('disabled', 'disabled')
+        })
+
+        progressBar.on('done', _ => {
+            $btnStart.removeAttribute('disabled')
+            $btnReset.removeAttribute('disabled')
         })
     })
 
