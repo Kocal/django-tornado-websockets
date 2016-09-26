@@ -1,32 +1,37 @@
-from tornado_websockets.websocket import WebSocket
+import abc
+
+import six
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Module(object):
-    def __init__(self, websocket, prefix=''):
-        if not isinstance(websocket, WebSocket):
-            raise ValueError('`websocket` parameter should be an instance of WebSocket class')
+    @abc.abstractclassmethod
+    def __init__(self, name=''):
+        self.name = 'module_' + name
+        self._websocket = None  # will be initialized with WebSocket.bind(Module)
 
-        self.websocket = websocket
-        self.prefix = prefix
+    @abc.abstractclassmethod
+    def initialize(self):
+        pass
 
     def on(self, callback):
         """
-            Shortcut for :meth:`tornado_websockets.websocket.WebSocket.on` decorator, but with a specific prefix for
-            each module.
+            Shortcut for :meth:`tornado_websockets.websocket.WebSocket.on` decorator,
+            but with a specific prefix for each module.
 
-            :ction or a class method.
+            :param callback: function or a class method.
             :type callback: Callable
             :return: ``callback`` parameter.
         """
 
-        callback.__name__ = self.prefix + callback.__name__
+        callback.__name__ = self.name + callback.__name__
 
-        return self.websocket.on(callback)
+        return self._websocket.on(callback)
 
     def emit(self, event, data=None):
         """
-            Shortcut for :meth:`tornado_websockets.websocket.WebSocket.emit` method, but with a specific prefix for
-            each module.
+            Shortcut for :meth:`tornado_websockets.websocket.WebSocket.emit` method,
+            but with a specific prefix for each module.
         """
 
-        return self.websocket.emit(self.prefix + event, data)
+        return self._websocket.emit(self.name + event, data)

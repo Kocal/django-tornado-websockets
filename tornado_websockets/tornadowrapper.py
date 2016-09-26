@@ -113,17 +113,12 @@ class TornadoWrapper:
             raise TypeError('Expected a list or a tuple for handlers.')
 
         if not TornadoWrapper.tornado_app:
-            # print('== Prepare new handlers for Tornado application:')
-            # pp.pprint(handlers)
-
             # ``cls.handlers = handlers + cls.handlers`` and not ``cls.handlers += handlers``,
             # see `TornadoWrapper.start_app` source to know why.
             cls.handlers = handlers + cls.handlers
 
             return cls.handlers
 
-        # print('== Adding handlers to already running Tornado application. New handlers are:')
-        # pp.pprint(cls.tornado_app.handlers)
         TornadoWrapper.tornado_app.add_handlers('.*', handlers)
 
         return cls.tornado_app.handlers
