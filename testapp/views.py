@@ -1,3 +1,3 @@
 from testapp.websocket import echo
-from testapp.websocket import chat
-from testapp.websocket import module_progressbar
+from testapp.websocket.chat import MyChat
+from testapp.websocket.module_progressbar import MyProgressBar
