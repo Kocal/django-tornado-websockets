@@ -126,7 +126,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # Tornado configuration
 
 TORNADO = {
-    # 'port': 8080,
+    'port': 8000,
     'handlers': [
         (r'%s(.*)' % STATIC_URL, tornado.web.StaticFileHandler, {'path': STATIC_ROOT}),
         tornado_websockets.django_app()
