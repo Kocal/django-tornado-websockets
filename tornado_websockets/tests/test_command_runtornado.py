@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils.six import StringIO
 from mock import patch, ANY
-
+from tornado_websockets.management.commands import runtornado
 django.setup()
 
 
@@ -113,3 +113,21 @@ class TestCommandRuntornado(TestCase):
         call_command('runtornado', stdout=StringIO())
 
         stub.assert_called_with(ANY, ANY, 8000)
+
+    '''
+        Test for run()
+    '''
+
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.loop')
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.listen')
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.start_app')
+    def test_run(self, start_app, listen, loop):
+        handlers = []
+        settings = {}
+        port = 1234
+
+        runtornado.run(handlers, settings, port)
+
+        start_app.assert_called_with(handlers, settings)
+        listen.assert_called_with(port)
+        loop.assert_called()
