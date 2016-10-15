@@ -1,19 +1,13 @@
 # coding: utf-8
-
-import pprint
-
 import tornado
 import tornado.escape
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
-from six import integer_types
-
-pp = pprint.PrettyPrinter(indent=4)
 
 
-class TornadoWrapper:
+class TornadoWrapper(object):
     """
         Wrapper for Tornado application and server handling.
 
@@ -21,42 +15,33 @@ class TornadoWrapper:
         useful when you run ``runtornado`` management command and WebSockets management).
     """
 
-    tornado_app = None
-    tornado_server = None
-
-    # Default values for user configuration
-    tornado_port = 0  # will never be 0
+    app = None
+    server = None
     handlers = []
 
     @classmethod
-    def start_app(cls, tornado_handlers=None, tornado_settings=None):
+    def start_app(cls, handlers=None, settings=None):
         """
             Initialize the Tornado web application with given handlers and settings.
 
-            :param tornado_handlers: Handlers (routes) for Tornado
-            :param tornado_settings: Settings for Tornado
-            :type tornado_handlers: list
-            :type tornado_settings: dict
+            :param handlers: Handlers (routes) for Tornado
+            :param settings: Settings for Tornado
+            :type handlers: list
+            :type settings: dict
             :return: None
         """
 
-        if not tornado_handlers:
-            tornado_handlers = []
+        if not handlers:
+            handlers = []
 
-        if not tornado_settings:
-            tornado_settings = {}
+        if not settings:
+            settings = {}
 
-        if not isinstance(tornado_handlers, list):
-            raise TypeError('Expected a list for Tornado handlers.')
+        # Not `handlers += cls.handlers` because the wildcard handler should be the last value in handlers
+        # list. See http://www.tornadoweb.org/en/stable/_modules/tornado/web.html#Application.add_handlers
+        handlers = cls.handlers + handlers
 
-        if not isinstance(tornado_settings, dict):
-            raise TypeError('Expected a dictionary for Tornado settings.')
-
-        # Not `tornado_handlers += cls.handlers` because wildcard handler should be the last value in handlers list
-        # http://www.tornadoweb.org/en/stable/_modules/tornado/web.html#Application.add_handlers
-        tornado_handlers = cls.handlers + tornado_handlers
-
-        cls.tornado_app = tornado.web.Application(tornado_handlers, **tornado_settings)
+        cls.app = tornado.web.Application(handlers, **settings)
 
     @classmethod
     def listen(cls, tornado_port):
@@ -70,15 +55,11 @@ class TornadoWrapper:
             .. todo:: Add support for HTTPS server.
         """
 
-        if not isinstance(tornado_port, integer_types):
-            raise TypeError('Expected an integer for Tornado port.')
-
-        if not cls.tornado_app:
+        if not cls.app:
             raise TypeError('Tornado application was not instantiated, call TornadoWrapper.start_app method.')
 
-        cls.tornado_port = tornado_port
-        cls.tornado_server = tornado.httpserver.HTTPServer(cls.tornado_app)
-        cls.tornado_server.listen(cls.tornado_port)
+        cls.server = tornado.httpserver.HTTPServer(cls.app)
+        cls.server.listen(tornado_port)
 
     @classmethod
     def loop(cls):
@@ -87,38 +68,27 @@ class TornadoWrapper:
 
             :return: None
         """
-        # print('== Using port %s' % cls.tornado_port)
-        # print('== Using handlers:')
-        # pp.pprint(cls.tornado_app.handlers)
-        # print('== Using settings:')
-        # pp.pprint(cls.tornado_app.settings)
-
         tornado.ioloop.IOLoop.instance().start()
 
     @classmethod
-    def add_handlers(cls, handlers):
+    def add_handler(cls, path, websocket_handler, args):
         """
             Add an handler to Tornado app if it's defined, otherwise it add this handler to the
             TornadoWrapper.tornado_handlers list.
 
-            :param handlers: Handler(s) to add
-            :type handlers: list|tuple
-            :return: Tornado application handlers
-            :rtype: list
+            :param path: Path of a WebSocket application
+            :param websocket_handler: WebSocket requests handler
+            :param args: Dictionary which will be passed as keyword argument to WebSocketHandler.initialize()
+            :type path: str
+            :type websocket_handler: WebSocketHandler
+            :type args: dict
         """
 
-        if isinstance(handlers, tuple):
-            handlers = [handlers]
-        elif not isinstance(handlers, list):
-            raise TypeError('Expected a list or a tuple for handlers.')
+        handler = [(path, websocket_handler, args)]
 
-        if not TornadoWrapper.tornado_app:
-            # ``cls.handlers = handlers + cls.handlers`` and not ``cls.handlers += handlers``,
+        if cls.app:
+            cls.app.add_handlers('.*', handler)
+        else:
+            # ``cls.handler = handler + cls.handler`` and not ``cls.handler += handler``,
             # see `TornadoWrapper.start_app` source to know why.
-            cls.handlers = handlers + cls.handlers
-
-            return cls.handlers
-
-        TornadoWrapper.tornado_app.add_handlers('.*', handlers)
-
-        return cls.tornado_app.handlers
+            cls.handlers = handler + cls.handlers

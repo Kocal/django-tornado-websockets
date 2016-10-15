@@ -10,7 +10,6 @@ import tornado.web
 import tornado.websocket
 
 import tornado_websockets.websocket
-from tornado_websockets.exceptions import *
 
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
@@ -29,9 +28,6 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             :param websocket: instance of WebSocket.
             :type websocket: WebSocket
         """
-
-        if not isinstance(websocket, tornado_websockets.websocket.WebSocket):
-            raise InvalidInstanceError(websocket, 'tornado_websockets.websocket.WebSocket')
 
         # Make a link between a WebSocket instance and this object
         self.websocket = websocket

@@ -1,8 +1,10 @@
 # coding: utf-8
-
+import six
 from six import string_types
-from tornado_websockets import tornadowrapper, websockethandler
-from tornado_websockets.exceptions import *
+
+from .exceptions import *
+from .tornadowrapper import TornadoWrapper
+from .websockethandler import WebSocketHandler
 
 
 class WebSocket(object):
@@ -10,21 +12,19 @@ class WebSocket(object):
         Class that you should to make WebSocket applications 👍.
     """
 
-    def __init__(self, path, add_to_handlers=True):
+    def __init__(self, path):
         self.events = {}
         self.handlers = []
         self.context = None
         self.modules = []
 
+        if not isinstance(path, six.string_types):
+            raise TypeError('Path parameter should be a string.')
+
         self.path = path.strip()
         self.path = self.path if self.path.startswith('/') else '/' + self.path
 
-        if add_to_handlers is True:
-            tornadowrapper.TornadoWrapper.add_handlers([
-                ('/ws' + self.path, websockethandler.WebSocketHandler, {
-                    'websocket': self
-                })
-            ])
+        TornadoWrapper.add_handler('/ws' + self.path, WebSocketHandler, {'websocket': self})
 
     def bind(self, module):
         self.modules.append(module)
@@ -92,7 +92,7 @@ class WebSocket(object):
             raise EmitHandlerError(event, self.path)
 
         for handler in self.handlers:
-            if not isinstance(handler, websockethandler.WebSocketHandler):
+            if not isinstance(handler, WebSocketHandler):
                 raise InvalidInstanceError(handler, 'tornado_websockets.websockethandler.WebSocketHandler')
 
             if isinstance(data, string_types):
