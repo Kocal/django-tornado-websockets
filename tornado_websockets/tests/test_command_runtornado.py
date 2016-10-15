@@ -3,13 +3,10 @@ import inspect
 
 import django
 from django.conf import settings
-from django.utils.six import StringIO
 from django.core.management import call_command
 from django.test import TestCase
+from django.utils.six import StringIO
 from mock import patch, ANY
-
-import tornado_websockets.management.commands.runtornado
-from tornado_websockets.tornadowrapper import TornadoWrapper
 
 django.setup()
 
