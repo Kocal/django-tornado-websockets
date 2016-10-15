@@ -5,12 +5,12 @@ import six
 
 @six.add_metaclass(abc.ABCMeta)
 class Module(object):
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def __init__(self, name=''):
         self.name = 'module_' + name
         self._websocket = None  # will be initialized with WebSocket.bind(Module)
 
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def initialize(self):
         pass
 
