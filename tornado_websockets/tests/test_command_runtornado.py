@@ -1,16 +1,21 @@
 # coding: utf-8
-
+import inspect
 
 import django
 from django.conf import settings
 from django.utils.six import StringIO
 from django.core.management import call_command
 from django.test import TestCase
-from mock import MagicMock
+from mock import patch, ANY
 
+import tornado_websockets.management.commands.runtornado
 from tornado_websockets.tornadowrapper import TornadoWrapper
 
 django.setup()
+
+
+def methodStub(*args, **kwargs):
+    return inspect.getargspec(methodStub)
 
 
 class TestCommandRuntornado(TestCase):
@@ -19,9 +24,6 @@ class TestCommandRuntornado(TestCase):
     """
 
     def setUp(self):
-        TornadoWrapper.start_app = MagicMock()
-        TornadoWrapper.listen = MagicMock()
-        TornadoWrapper.loop = MagicMock()
         self.TORNADO = settings.TORNADO
 
     def tearDown(self):
@@ -31,83 +33,86 @@ class TestCommandRuntornado(TestCase):
         Tests for settings behavior.
     '''
 
-    def test_without_tornado_settings(self):
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_without_tornado_settings(self, stub):
         del settings.TORNADO
 
         err = StringIO()
+
         call_command('runtornado', stdout=StringIO(), stderr=err)
 
         self.assertIn("Configuration => Not found: 'Settings' object has no attribute 'TORNADO'", err.getvalue())
+        stub.assert_not_called()
 
-    def test_with_tornado_settings(self):
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_with_tornado_settings(self, stub):
         err = StringIO()
+
         call_command('runtornado', stdout=StringIO(), stderr=err)
 
         self.assertNotIn("Configuration => Not found: 'Settings' object has no attribute 'TORNADO'", err.getvalue())
-
-    '''
-        Tests for port behavior.
-    '''
-
-    def test_get_port_from_options(self):
-        settings.TORNADO['port'] = 1234
-
-        out = StringIO()
-        call_command('runtornado', '8080', stdout=out)
-
-        self.assertIn('Port => 8080', out.getvalue())
-        TornadoWrapper.listen.assert_called_with(8080)
-
-    def test_get_port_from_settings(self):
-        settings.TORNADO['port'] = 1234
-
-        out = StringIO()
-        call_command('runtornado', stdout=out)
-
-        self.assertIn('Port => 1234', out.getvalue())
-        TornadoWrapper.listen.assert_called_with(1234)
-
-    def test_get_port_with_default_port(self):
-        del settings.TORNADO['port']
-
-        out = StringIO()
-        call_command('runtornado', stdout=out)
-
-        self.assertIn('Port => 8000', out.getvalue())
-        TornadoWrapper.listen.assert_called_with(8000)
+        stub.assert_called()
 
     '''
         Tests for handlers behavior.
     '''
 
-    def test_without_handlers(self):
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_without_handlers(self, stub):
         del settings.TORNADO['handlers']
 
-        out = StringIO()
-        call_command('runtornado', stdout=out)
+        call_command('runtornado', stdout=StringIO())
 
-        self.assertIn('Handlers => Found 0 initial handlers.', out.getvalue())
+        stub.assert_called_with([], ANY, ANY)
 
-    def test_with_handlers(self):
-        out = StringIO()
-        call_command('runtornado', stdout=out)
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_with_handlers(self, stub):
+        call_command('runtornado', stdout=StringIO())
 
-        self.assertIn('Handlers => Found 2 initial handlers.', out.getvalue())
+        stub.assert_called_with(ANY, ANY, ANY)
 
     '''
         Tests for settings behavior.
     '''
 
-    def test_without_settings(self):
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_without_settings(self, stub):
         del settings.TORNADO['settings']
 
-        out = StringIO()
-        call_command('runtornado', stdout=out)
+        call_command('runtornado', stdout=StringIO())
 
-        self.assertIn('Settings => {}', out.getvalue())
+        stub.assert_called_with(ANY, {}, ANY)
 
-    def test_with_settings(self):
-        out = StringIO()
-        call_command('runtornado', stdout=out)
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_with_settings(self, stub):
+        call_command('runtornado', stdout=StringIO())
 
-        self.assertIn('Settings => {"autoreload": true, "debug": true}', out.getvalue())
+        stub.assert_called_with(ANY, {'autoreload': True, 'debug': True}, ANY)
+
+    '''
+        Tests for port behavior.
+    '''
+
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_get_port_from_options(self, stub):
+        settings.TORNADO['port'] = 1234
+
+        call_command('runtornado', '8080', stdout=StringIO())
+
+        stub.assert_called_with(ANY, ANY, 8080)
+
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_get_port_from_settings(self, stub):
+        settings.TORNADO['port'] = 1234
+
+        call_command('runtornado', stdout=StringIO())
+
+        stub.assert_called_with(ANY, ANY, 1234)
+
+    @patch('tornado_websockets.management.commands.runtornado.run')
+    def test_get_port_with_default_port(self, stub):
+        del settings.TORNADO['port']
+
+        call_command('runtornado', stdout=StringIO())
+
+        stub.assert_called_with(ANY, ANY, 8000)

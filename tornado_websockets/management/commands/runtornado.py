@@ -2,8 +2,9 @@
 # how to make Tornado runs fine with Django and other WSGI Handler.
 # => https://github.com/bdarnell/django-tornado-demo/blob/master/testsite/tornado_main.py
 
-import django.core.handlers.wsgi
 import json
+
+import django.core.handlers.wsgi
 from django.apps import AppConfig
 from django.conf import settings
 from django.core.management import BaseCommand
@@ -24,6 +25,12 @@ def get_port(options, configuration):
     return port
 
 
+def run(tornado_handlers, tornado_settings, port):
+    TornadoWrapper.start_app(tornado_handlers, tornado_settings)
+    TornadoWrapper.listen(port)
+    TornadoWrapper.loop()
+
+
 class Command(BaseCommand, AppConfig):
     help = 'Run Tornado web server with Django and WebSockets support'
 
@@ -41,7 +48,6 @@ class Command(BaseCommand, AppConfig):
             return
 
         port = get_port(options, configuration)
-
         tornado_handlers = configuration.get('handlers', [])
         tornado_settings = configuration.get('settings', {})
 
@@ -50,6 +56,4 @@ class Command(BaseCommand, AppConfig):
         self.stdout.write('runtornado: Handlers => Found %d initial handlers.' % len(tornado_handlers))
         self.stdout.write('runtornado: Settings => ' + json.dumps(tornado_settings))
 
-        TornadoWrapper.start_app(tornado_handlers, tornado_settings)
-        TornadoWrapper.listen(port)
-        TornadoWrapper.loop()
+        run(tornado_handlers, tornado_settings, port)
