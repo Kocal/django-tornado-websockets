@@ -1,3 +1,5 @@
+# coding: utf-8
+
 """
     Example of module « Progress Bar » by using `tornado_websocket.modules.ProgressBar` to handle communications,
     and Django's TemplateView for rendering.

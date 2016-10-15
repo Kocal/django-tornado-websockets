@@ -1,3 +1,5 @@
+# coding: utf-8
+
 """
     Example of a « chat application » by using `tornado_websocket.WebSocket` to handle communications,
     and Django's TemplateView for rendering.
