@@ -1,6 +1,5 @@
 # coding: utf-8
 import tornado
-import tornado.escape
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
@@ -71,20 +70,17 @@ class TornadoWrapper(object):
         tornado.ioloop.IOLoop.instance().start()
 
     @classmethod
-    def add_handler(cls, path, websocket_handler, args):
+    def add_handler(cls, handler):
         """
             Add an handler to Tornado app if it's defined, otherwise it add this handler to the
             TornadoWrapper.tornado_handlers list.
 
-            :param path: Path of a WebSocket application
-            :param websocket_handler: WebSocket requests handler
-            :param args: Dictionary which will be passed as keyword argument to WebSocketHandler.initialize()
-            :type path: str
-            :type websocket_handler: WebSocketHandler
-            :type args: dict
+            :param handler: An handler which conforms
+            :type handler: list|tuple
         """
 
-        handler = [(path, websocket_handler, args)]
+        if isinstance(handler, tuple):
+            handler = [handler]
 
         if cls.app:
             cls.app.add_handlers('.*', handler)
