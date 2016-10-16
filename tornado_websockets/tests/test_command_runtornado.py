@@ -1,5 +1,4 @@
 # coding: utf-8
-import inspect
 
 import django
 from django.conf import settings
@@ -7,12 +6,10 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils.six import StringIO
 from mock import patch, ANY
+
 from tornado_websockets.management.commands import runtornado
+
 django.setup()
-
-
-def methodStub(*args, **kwargs):
-    return inspect.getargspec(methodStub)
 
 
 class TestCommandRuntornado(TestCase):
