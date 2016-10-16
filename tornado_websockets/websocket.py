@@ -24,7 +24,7 @@ class WebSocket(object):
         self.path = path.strip()
         self.path = self.path if self.path.startswith('/') else '/' + self.path
 
-        TornadoWrapper.add_handler('/ws' + self.path, WebSocketHandler, {'websocket': self})
+        TornadoWrapper.add_handler(('/ws' + self.path, WebSocketHandler, {'websocket': self}))
 
     def bind(self, module):
         self.modules.append(module)
