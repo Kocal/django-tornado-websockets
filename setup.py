@@ -1,4 +1,5 @@
 import os
+from tornado_websocket import __version__
 from setuptools import find_packages, setup
 
 
@@ -9,7 +10,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-tornado-websockets',
-    version='0.1.3',
+    version=__version__,
     description="Simple way to use WebSockets for Django with Tornado",
     long_description=README,
     author='Hugo ALLIAUME',
