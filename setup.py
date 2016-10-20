@@ -1,5 +1,5 @@
 import os
-from tornado_websocket import __version__
+from tornado_websockets import __version__
 from setuptools import find_packages, setup
 
 
