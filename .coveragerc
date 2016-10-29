@@ -4,6 +4,8 @@ source =
 
 omit =
     tornado_websockets/__init__.py
+    tornado_websockets/exceptions.py
     tornado_websockets/**/__init__.py
     tornado_websockets/tests/test_*.py
-    tornado_websockets/tests/helpers/helpers.py
+    tornado_websockets/tests/helpers/*.py
+    tornado_websockets/tests/app/*.py
