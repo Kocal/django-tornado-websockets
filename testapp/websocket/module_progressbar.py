@@ -11,23 +11,23 @@ from tornado import gen
 from tornado_websockets.modules import ProgressBar
 from tornado_websockets.websocket import WebSocket
 
-tws = WebSocket('module_progressbar')
-progress_bar = ProgressBar('foo', min=0, max=100)
+ws = WebSocket('module_progressbar')
+progressbar = ProgressBar('foo', min=0, max=100)
 
-tws.bind(progress_bar)
+ws.bind(progressbar)
 
 
-@progress_bar.on
+@progressbar.on
 def reset():
-    progress_bar.reset()
+    progressbar.reset()
 
 
-@progress_bar.on
-@gen.engine  # Asynchronous for Tornado's IOLoop
+@progressbar.on
+@gen.engine  # Make this function asynchronous for Tornado's IOLoop
 def start():
-    for value in range(0, progress_bar.max):
+    for value in range(0, progressbar.max):
         yield gen.sleep(.1)  # like time.sleep(), but asynchronous
-        progress_bar.tick(label="[%d/%d] Tâche %d terminée" % (progress_bar.current + 1, progress_bar.max, value))
+        progressbar.tick(label="[%d/%d] Tâche %d terminée" % (progress_bar.current + 1, progress_bar.max, value))
 
 
 class MyProgressBar(TemplateView):
