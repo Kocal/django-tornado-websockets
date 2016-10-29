@@ -45,7 +45,7 @@ class TestWebSocket(TestCase):
 
         self.assertListEqual(ws.modules, [module])
         self.assertEqual(module._websocket, ws)
-        module.initialize.assert_called()
+        module.initialize.assert_called_with()
 
     @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
     def test_on(self, add_handler):
