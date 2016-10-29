@@ -6,8 +6,4 @@ omit =
     tornado_websockets/__init__.py
     tornado_websockets/**/__init__.py
     tornado_websockets/tests/test_*.py
-    tornado_websockets/tests/helpers.py
-
-[report]
-exclude_lines =
-    if not test_mode:
+    tornado_websockets/tests/helpers/helpers.py
