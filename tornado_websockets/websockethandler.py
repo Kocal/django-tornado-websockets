@@ -9,8 +9,6 @@ import tornado.ioloop
 import tornado.web
 import tornado.websocket
 
-import tornado_websockets.websocket
-
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     """
