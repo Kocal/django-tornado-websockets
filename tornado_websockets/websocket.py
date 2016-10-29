@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import six
 from six import string_types
 
 from .exceptions import *
@@ -14,13 +13,20 @@ class WebSocket(object):
     """
 
     def __init__(self, path):
+        """
+            Initialize a new WebSocket object.
+
+            :param path: path of your application, used to rely with dtws's client side.
+            :type path: str
+        """
+
         self.events = {}
         self.handlers = []
         self.context = None
         self.modules = []
 
-        if not isinstance(path, six.string_types):
-            raise TypeError('Path parameter should be a string.')
+        if not isinstance(path, string_types):
+            raise TypeError('« Path » parameter should be a string.')
 
         self.path = path.strip()
         self.path = self.path if self.path.startswith('/') else '/' + self.path
@@ -28,37 +34,39 @@ class WebSocket(object):
         TornadoWrapper.add_handler(('/ws' + self.path, WebSocketHandler, {'websocket': self}))
 
     def bind(self, module):
+        """
+            Bind a Module instance to a WebSocket one.
+
+            :param module: Module instance to bind
+            :type module: tornado_websockets.modules.Module
+        """
+
         self.modules.append(module)
         module._websocket = self
         module.initialize()
 
     def on(self, callback):
         """
-            Execute a callback when an event is received from a client, should be used as a decorator for a function or a
-            class method.
+            Should be used as a decorator.
 
-            Event name is determined by function/method ``__name__`` attribute.
+            It will execute the decorated function when :class:`~tornado_websockets.websockethandler.WebSocketHandler`
+            will receive an event where its name correspond to the function one (by using ``__name__`` magic attribute).
 
-            :param callback: Function or a class method.
-            :type callback: Callable
-            :return: ``callback`` parameter.
+            :param callback: Function to decorate.
+            :type callback: callable
+            :raise tornado_websockets.exceptions.NotCallableError:
 
             :Example:
                  >>> ws = WebSocket('/example')
                  >>> @ws.on
-                 ... def my_event(socket, data):
-                 ...     print('Received "my_event" event from a client.')
+                 ... def hello(socket, data):
+                 ...     print('Received event « hello » from a client.')
         """
 
         if not callable(callback):
             raise NotCallableError(callback)
 
-        event = callback.__name__
-
-        if self.events.get(event) is not None:
-            raise WebSocketEventAlreadyBinded(event, self.path)
-
-        self.events[event] = callback
+        self.events[callback.__name__] = callback
         return callback
 
     def emit(self, event, data=None):
@@ -80,23 +88,16 @@ class WebSocket(object):
                 :class:`~tornado_websockets.exceptions.EmitHandlerError` exception.
         """
 
-        if not data:
-            data = dict()
-
         if not isinstance(event, string_types):
-            raise TypeError('Event should be a string.')
+            raise TypeError('Param « event » should be a string.')
 
-        if not isinstance(data, string_types) and not isinstance(data, dict):
-            raise TypeError('Data should be a string or a dictionary.')
+        if not data:
+            data = {}
 
-        if not self.handlers:
-            raise EmitHandlerError(event, self.path)
+        if isinstance(data, string_types):
+            data = {'message': data}
 
-        for handler in self.handlers:
-            if not isinstance(handler, WebSocketHandler):
-                raise InvalidInstanceError(handler, 'tornado_websockets.websockethandler.WebSocketHandler')
+        if not isinstance(data, dict):
+            raise TypeError('Param « data » should be a string or a dictionary.')
 
-            if isinstance(data, string_types):
-                data = {'message': data}
-
-            handler.emit(event, data)
+        [_.emit(event, data) for _ in self.handlers if self.handlers]
