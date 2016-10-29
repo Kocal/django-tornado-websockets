@@ -1,9 +1,13 @@
 # coding: utf-8
 
-
 from unittest import TestCase
 
-from mock import patch, Mock
+import six
+
+if six.PY2:
+    from mock import patch, Mock
+else:
+    from unittest.mock import patch, Mock
 
 from tornado_websockets.exceptions import NotCallableError
 from tornado_websockets.modules import ProgressBar
