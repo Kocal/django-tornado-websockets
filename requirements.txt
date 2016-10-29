@@ -3,3 +3,5 @@ tornado>=4.3
 six>=1.10
 mock
 tox
+Sphinx
+sphinx_rtd_theme
