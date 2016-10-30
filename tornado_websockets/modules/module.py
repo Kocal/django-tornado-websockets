@@ -14,6 +14,14 @@ class Module(object):
     def initialize(self):
         pass
 
+    @property
+    def context(self):
+        return self._websocket.context
+
+    @context.setter
+    def context(self, value):
+        self._websocket.context = value
+
     def on(self, callback):
         """
             Shortcut for :meth:`tornado_websockets.websocket.WebSocket.on` decorator,

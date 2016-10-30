@@ -33,6 +33,21 @@ class TestModule(TestCase):
         self.assertEqual(moduleBar.name, 'module_mymodule_bar')
 
     @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
+    def test_context(self, add_handler):
+        module = MyModule()
+        ws = WebSocket('pb')
+
+        self.assertIsNone(module._websocket)
+        with self.assertRaisesRegexp(AttributeError, "'NoneType' object has no attribute 'context'"):
+            a = module.context
+
+        ws.bind(module)
+
+        module.context = 'foo'
+        self.assertEqual(module._websocket.context, 'foo')
+        self.assertEqual(module.context, 'foo')
+
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
     def test_on(self, add_handler):
         ws = WebSocket('foo')
         moduleBar = MyModule('bar')
