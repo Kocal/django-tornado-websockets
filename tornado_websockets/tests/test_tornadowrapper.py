@@ -79,8 +79,7 @@ class TestTornadoWrapper(TestCase):
         self.assertIsNone(TornadoWrapper.app)
         self.assertListEqual(TornadoWrapper.handlers, [])
 
-        with self.assertRaisesRegexp(TypeError,
-                                     "cannot concatenate 'str' and 'list'|Can't convert 'list' object to str"):
+        with self.assertRaises(TypeError):
             TornadoWrapper.add_handler('a string')
 
         self.assertListEqual(TornadoWrapper.handlers, [])
