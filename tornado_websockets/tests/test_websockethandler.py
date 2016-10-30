@@ -8,7 +8,7 @@ from tornado.escape import json_decode, json_encode
 from tornado.testing import gen_test
 
 from tornado_websockets.tests.app import ws as appTest
-from tornado_websockets.tests.helpers.helpers import WebSocketBaseTestCase, WebSocketHandlerForTests
+from tornado_websockets.tests.helpers import WebSocketBaseTestCase, WebSocketHandlerForTests
 from tornado_websockets.websockethandler import WebSocketHandler
 
 
