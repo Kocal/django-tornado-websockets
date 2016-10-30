@@ -4,15 +4,15 @@ from unittest import TestCase
 
 import six
 
-if six.PY2:
-    from mock import patch, Mock
-else:
-    from unittest.mock import patch, Mock
-
 from tornado_websockets.exceptions import NotCallableError
 from tornado_websockets.modules import ProgressBar
 from tornado_websockets.websocket import WebSocket
 from tornado_websockets.websockethandler import WebSocketHandler
+
+if six.PY2:
+    from mock import patch, Mock
+else:
+    from unittest.mock import patch, Mock
 
 
 class TestWebSocket(TestCase):
