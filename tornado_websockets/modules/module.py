@@ -24,7 +24,7 @@ class Module(object):
             :return: ``callback`` parameter.
         """
 
-        callback.__name__ = self.name + callback.__name__
+        callback.__name__ = self.name + '_' + callback.__name__
 
         return self._websocket.on(callback)
 
@@ -34,4 +34,4 @@ class Module(object):
             but with a specific prefix for each module.
         """
 
-        return self._websocket.emit(self.name + event, data)
+        return self._websocket.emit(self.name + '_' + event, data)
