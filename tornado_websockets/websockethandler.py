@@ -31,6 +31,14 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.websocket = websocket
         websocket.handlers.append(self)
 
+    def open(self):
+        """
+            Called when the WebSocket is opened
+        """
+
+        if self.websocket.events.get('open'):
+            self.on_message('{"event": "open", "data": {}}')
+
     def check_origin(self, origin):
         return True
 
@@ -53,8 +61,8 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         if not event:
             self.emit_warning('There is no event in this JSON.')
             return
-        elif self.websocket.events.get(event) is None:
-            self.emit_warning('Event is not binded.')
+
+        if not self.websocket.events.get(event):
             return
 
         if not data:
@@ -75,21 +83,6 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             kwargs['data'] = data
 
         return callback(**kwargs)
-
-    def open(self):
-        """
-            Called when the WebSocket is opened
-        """
-
-        if self.websocket.events.get('open'):
-            self.on_message('{"event": "open"}')
-
-    def on_close(self):
-        """
-            Called when the WebSocket is closed, delete the link between this object and its WebSocket.
-        """
-
-        self.websocket.handlers.remove(self)
 
     def emit(self, event, data):
         """
@@ -118,3 +111,10 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         """
 
         return self.emit('warning', {'message': message})
+
+    def on_close(self):
+        """
+            Called when the WebSocket is closed, delete the link between this object and its WebSocket.
+        """
+
+        self.websocket.handlers.remove(self)

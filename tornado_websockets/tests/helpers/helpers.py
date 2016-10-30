@@ -10,13 +10,13 @@ except ImportError:
     speedups = None
 
 
-class TestWebSocketHandler(WebSocketHandler):
+class WebSocketHandlerForTests(WebSocketHandler):
     """Base class for testing handlers that exposes the on_close event.
     This allows for deterministic cleanup of the associated socket.
     """
 
     def initialize(self, websocket, close_future, compression_options=None):
-        super(TestWebSocketHandler, self).initialize(websocket)
+        super(WebSocketHandlerForTests, self).initialize(websocket)
         self.close_future = close_future
         self.compression_options = compression_options
 
@@ -24,13 +24,8 @@ class TestWebSocketHandler(WebSocketHandler):
         return self.compression_options
 
     def on_close(self):
+        super(WebSocketHandlerForTests, self).on_close()
         self.close_future.set_result((self.close_code, self.close_reason))
-
-
-class EchoHandler(TestWebSocketHandler):
-    def on_message(self, message):
-        self.write_message(message, isinstance(message, bytes))
-
 
 class WebSocketBaseTestCase(AsyncHTTPTestCase):
     @gen.coroutine

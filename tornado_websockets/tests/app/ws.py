@@ -11,7 +11,9 @@ def get_ws():
     @ws.on
     def hello(socket, data):
         ws.emit('hello', {
-            'message': 'Hello, I am %s.' % ws,
+            'socket': str(socket),
+            'data_sent': data,
+            'message': 'Hello from hello callback!'
         })
 
     return ws
