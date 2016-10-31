@@ -22,6 +22,7 @@ env:
 install:
   - pip install python-coveralls
   - pip install Django$DJANGO_VERSION
+  - if [[ $TRAVIS_PYTHON_VERSION == '3.2' ]]; then pip install tornado==4.3; fi
   - pip install -r requirements.txt
   - pip install mock --upgrade
   # virtualenv>=14.0.0 has dropped Python 3.2 support
