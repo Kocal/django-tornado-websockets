@@ -1,66 +1,84 @@
 Modules
 =======
 
+.. automodule:: tornado_websockets.modules
+
+Module
+------
+
+.. autoclass:: Module
+
+
 Progress bar
 ------------
 
-Provide an interface to easily handle a progress bar on both server and client sides.
+The module « ProgressBar » facilitate the communication between the server-side and client-side of a progression bar.
 
-.. automodule:: tornado_websockets.modules.progress_bar
+**Server-side**:
 
-    Example
-    ^^^^^^^
+- An easier communication with client-side ProgressBar module
+- Handle *init*, *update* and *done* events,
+- Update current progression value with :py:meth:`~.tick()` or :py:meth:`~.reset()`
 
-    Server-side
-    '''''''''''
+**Client-side**:
 
-    .. code-block:: python
+- An easier communication with server-side ProgressBar module,
+- Handle *init*, *update* and *done* events,
+- Rendering a progression bar by using `HTML5` or `Bootstrap` rendering.
 
-        import time
-        import threading
-        from tornado_websockets.modules.progress_bar import ProgressBar
+Server-side
+^^^^^^^^^^^
 
-        ws = WebSocket('my_app')
-        progressbar = ProgressBar(ws, min=0, max=100)
+Construction
+............
 
-        # Client emitted `my_event` event
-        @ws.on
-        def my_event(socket, data): pass
+.. autoclass:: ProgressBar
 
-        # Client emitted ``module_progressbar_start_progression`` event
-        @progressbar.on
-        def start_progression(socket, data):
+Methods
+.......
 
-            def my_func():
-                for value in range(progressbar.min, progressbar.max):
-                    time.sleep(.1)  # Emulate a slow task :^)
-                    progressbar.tick(label="[%d/%d] Task #%d is done" % (progressbar.value, progressbar.max, value))
+.. automethod:: ProgressBar.reset
+.. automethod:: ProgressBar.tick
+.. automethod:: ProgressBar.is_done
 
-            threading.Thread(None, my_func, None).start()
+Events
+......
 
-    Client-side
-    '''''''''''
+.. automethod:: ProgressBar.on
+.. automethod:: ProgressBar.emit_init
+.. automethod:: ProgressBar.emit_update
+.. automethod:: ProgressBar.emit_done
 
-    Read client-side documentation on `<https://docs.kocal.fr/dtws-client-module-progressbar>`_.
+Example
+.......
 
-    Usage
-    ^^^^^
+.. code-block:: python
 
-    Construction
-    '''''''''''''
-    .. autoclass:: ProgressBar
+    from tornado import gen
 
-    Methods
-    '''''''
+    from tornado_websockets.modules import ProgressBar
+    from tornado_websockets.websocket import WebSocket
 
-    .. automethod:: ProgressBar.reset
-    .. automethod:: ProgressBar.tick
-    .. automethod:: ProgressBar.is_done
+    ws = WebSocket('module_progressbar')
+    progressbar = ProgressBar('foo', min=0, max=100)
 
-    Events
-    ''''''
+    ws.bind(progressbar)
 
-    .. automethod:: ProgressBar.on
-    .. automethod:: ProgressBar.emit_init
-    .. automethod:: ProgressBar.emit_update
-    .. automethod:: ProgressBar.emit_done
+
+    @progressbar.on
+    def reset():
+        progressbar.reset()
+
+
+    @progressbar.on
+    @gen.engine  # Make this function asynchronous for Tornado's IOLoop
+    def start():
+        for value in range(0, progressbar.max):
+            yield gen.sleep(.1)  # like time.sleep(), but asynchronous with @gen.engine
+            progressbar.tick(label="[%d/%d] Tâche %d terminée" % (progressbar.current + 1, progressbar.max, value))
+
+
+Client-side
+^^^^^^^^^^^
+
+Read documentation about ProgressBar client-side module `here <https://docs.kocal.fr/django-tornado-websockets-client/0.2.0-beta/ModuleProgressBar.html>`_.

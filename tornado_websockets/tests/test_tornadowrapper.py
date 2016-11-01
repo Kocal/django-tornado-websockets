@@ -1,164 +1,104 @@
-# coding: utf-8
+from _socket import gaierror
+from unittest import TestCase
 
-import pprint
-import re
-import unittest
-
+import tornado
 import tornado.httpserver
-import tornado.ioloop
 import tornado.web
+from mock import patch
+from tornado.websocket import WebSocketHandler
 
 from tornado_websockets.tornadowrapper import TornadoWrapper
 
-pp = pprint.PrettyPrinter(indent=4)
 
+class TestTornadoWrapper(TestCase):
+    """
+        Tests for TornadoWrapper class.
+    """
 
-def TornadoWrapper_reset():
-    tornado.ioloop.IOLoop.instance().stop()
-    TornadoWrapper.tornado_app = None
-    TornadoWrapper.tornado_server = None
-    TornadoWrapper.handlers = []
-    TornadoWrapper.tornado_port = 8000
+    def tearDown(self):
+        TornadoWrapper.app = None
+        TornadoWrapper.handlers = []
 
+    '''
+        Tests for TornadoWrapper.start_app()
+    '''
 
-class TestTornadoWrapper(unittest.TestCase):
-    def test_reset(self):
-        TornadoWrapper_reset()
-        self.assertIsNone(TornadoWrapper.tornado_app)
-        self.assertIsNone(TornadoWrapper.tornado_server)
-        self.assertListEqual(TornadoWrapper.handlers, [])
-        self.assertEqual(TornadoWrapper.tornado_port, 8000)
+    @patch('tornado.web.Application')
+    def test_start_app_without_handlers_without_settings(self, stub):
+        TornadoWrapper.start_app()
 
-    def test_start_app_with_invalid_parameter_handlers(self):
-        with self.assertRaises(TypeError) as e:
-            TornadoWrapper.start_app('not a list', {})
+        stub.assert_called_with([])
 
-        self.assertEqual(str(e.exception), 'Expected a list for Tornado handlers.')
+    @patch('tornado.web.Application')
+    def test_start_app_with_handlers_with_settings(self, stub):
+        TornadoWrapper.start_app([], {'foo': 'bar', 'foo2': 'bar2'})
 
-    def test_start_app_with_invalid_parameter_settings(self):
-        with self.assertRaises(TypeError) as e:
-            TornadoWrapper.start_app([], 'not a dictionary')
+        stub.assert_called_with([], foo='bar', foo2='bar2')
 
-        self.assertEqual(str(e.exception), 'Expected a dictionary for Tornado settings.')
+    '''
+        Tests for TornadoWrapper.listen()
+    '''
 
-    def test_start_app(self):
-        TornadoWrapper.start_app([], {})
+    def test_listen_with_bad_port_type(self):
+        TornadoWrapper.start_app()
 
-        self.assertIsNotNone(TornadoWrapper.tornado_app)
-        self.assertIsInstance(TornadoWrapper.tornado_app, tornado.web.Application)
+        with self.assertRaisesRegexp(gaierror, 'Servname not supported'):
+            TornadoWrapper.listen('not a integer')
 
-    def test_listen_with_invalid_parameter_port(self):
-        TornadoWrapper_reset()
-
-        with self.assertRaises(TypeError) as e:
-            TornadoWrapper.listen('not an integer')
-
-        self.assertEqual(str(e.exception), 'Expected an integer for Tornado port.')
-        self.assertIsNone(TornadoWrapper.tornado_server)
-
-        with self.assertRaises(TypeError) as e:
+    def test_listen_without_app_instance(self):
+        with self.assertRaisesRegexp(TypeError, 'Tornado application was not instantiated'):
             TornadoWrapper.listen(8000)
 
-        self.assertEqual(
-            str(e.exception),
-            'Tornado application was not instantiated, call TornadoWrapper.start_app method.'
-        )
-        self.assertIsNone(TornadoWrapper.tornado_server)
+    @patch('tornado.httpserver.HTTPServer', autospec=True)
+    def test_listen_with_app_instance(self, stub):
+        self.assertIsNone(TornadoWrapper.app)
+        self.assertIsNone(TornadoWrapper.server)
 
-    def test_listen(self):
         TornadoWrapper.start_app()
         TornadoWrapper.listen(12345)
 
-        self.assertEqual(TornadoWrapper.tornado_port, 12345)
-        self.assertIsNotNone(TornadoWrapper.tornado_server)
-        self.assertIsInstance(TornadoWrapper.tornado_server, tornado.httpserver.HTTPServer)
+        self.assertIsInstance(TornadoWrapper.app, tornado.web.Application)
+        self.assertIs(stub, tornado.httpserver.HTTPServer)
+        stub.assert_called_with(TornadoWrapper.app)
 
-    def test_loop(self):
-        TornadoWrapper.start_app()
-        TornadoWrapper.listen(8000)
-        TornadoWrapper.loop()
-        TornadoWrapper_reset()
+    '''
+        Test for TornadoWrapper.loop()
+    '''
 
-    def test_add_handlers_with_invalid_parameter_handlers(self):
-        with self.assertRaises(TypeError) as e:
-            TornadoWrapper.add_handlers('not a list or tuple')
-
-        self.assertEqual(str(e.exception), 'Expected a list or a tuple for handlers.')
-
-    def test_add_handler_when_tornadoapp_is_not_running(self):
-        class MyHandler(tornado.web.RequestHandler):
-            pass
-
-        TornadoWrapper_reset()
-        TornadoWrapper.add_handlers(
-            ('.*', MyHandler)
-        )
-
-        self.assertEqual(TornadoWrapper.handlers[0][0], '.*')
-        self.assertEqual(str(TornadoWrapper.handlers[0][1]), str(MyHandler))  # do not works without str() (???)
-
-    def test_add_handlers_when_tornadoapp_is_not_running(self):
-        class MyFirstHandler(tornado.web.RequestHandler):
-            pass
-
-        class MySecondHandler(tornado.web.RequestHandler):
-            pass
-
-        TornadoWrapper_reset()
-        TornadoWrapper.add_handlers([
-            ('/handler/first', MyFirstHandler),
-            ('/handler/second', MySecondHandler)
-        ])
-
-        self.assertEqual(TornadoWrapper.handlers[0][0], '/handler/first')
-        self.assertEqual(str(TornadoWrapper.handlers[0][1]), str(MyFirstHandler))
-
-        self.assertEqual(TornadoWrapper.handlers[1][0], '/handler/second')
-        self.assertEqual(str(TornadoWrapper.handlers[1][1]), str(MySecondHandler))
-
-    def test_add_handler_when_tornadoapp_is_running(self):
-        class MyHandler(tornado.web.RequestHandler):
-            pass
-
-        TornadoWrapper_reset()
-        TornadoWrapper.start_app()
-        TornadoWrapper.listen(11111)
+    @patch('tornado.ioloop.IOLoop.instance')
+    def test_loop(self, stub):
         TornadoWrapper.loop()
 
-        self.assertIsNotNone(TornadoWrapper.tornado_app)
+        stub.assert_called()
 
-        TornadoWrapper.add_handlers(
-            ('.*', MyHandler)
-        )
+    '''
+        Tests for TornadoWrapper.add_handler()
+    '''
 
-        handlers = TornadoWrapper.tornado_app.handlers[0][1]  # list of URLSpec
+    def test_add_handler_without_tornado_app_instance(self):
+        self.assertIsNone(TornadoWrapper.app)
+        self.assertListEqual(TornadoWrapper.handlers, [])
 
-        self.assertEqual(handlers[0].regex, re.compile('.*$'))
-        self.assertEqual(handlers[0].handler_class, MyHandler)  # do not works without str() (???)
+        with self.assertRaises(TypeError):
+            TornadoWrapper.add_handler('a string')
 
-    def test_add_handlers_when_tornadoapp_is_running(self):
-        class MyFirstHandler(tornado.web.RequestHandler):
-            pass
+        self.assertListEqual(TornadoWrapper.handlers, [])
 
-        class MySecondHandler(tornado.web.RequestHandler):
-            pass
+        TornadoWrapper.add_handler([('my', 'tuple', 'in', 'a', 'list')])
+        self.assertListEqual(TornadoWrapper.handlers, [('my', 'tuple', 'in', 'a', 'list')])
 
-        TornadoWrapper_reset()
+        TornadoWrapper.add_handler(('my', 'tuple'))
+        self.assertListEqual(TornadoWrapper.handlers, [('my', 'tuple'), ('my', 'tuple', 'in', 'a', 'list')])
+
+    def test_add_handler_with_tornado_app_instance(self):
+        self.assertIsNone(TornadoWrapper.app)
+        self.assertListEqual(TornadoWrapper.handlers, [])
+
         TornadoWrapper.start_app()
-        TornadoWrapper.listen(22222)
-        TornadoWrapper.loop()
+        self.assertIsNotNone(TornadoWrapper.app)
 
-        self.assertIsNotNone(TornadoWrapper.tornado_app)
+        with self.assertRaisesRegexp(AttributeError, "'str' object has no attribute 'name'"):
+            TornadoWrapper.add_handler('a string')
 
-        TornadoWrapper.add_handlers([
-            ('/handler/first', MyFirstHandler),
-            ('/handler/second', MySecondHandler)
-        ])
-
-        handlers = TornadoWrapper.tornado_app.handlers[0][1]  # list of URLSpec
-
-        self.assertEqual(handlers[0].regex, re.compile('/handler/first$'))
-        self.assertEqual(handlers[0].handler_class, MyFirstHandler)
-
-        self.assertEqual(handlers[1].regex, re.compile('/handler/second$'))
-        self.assertEqual(handlers[1].handler_class, MySecondHandler)
+        TornadoWrapper.add_handler([('path', WebSocketHandler, {})])
+        TornadoWrapper.add_handler(('path2', WebSocketHandler, {}))

@@ -1,3 +1,4 @@
+# coding=utf-8
 from tornado_websockets.modules.module import Module
 
 
@@ -8,40 +9,32 @@ class ProgressBar(Module):
         If ``min`` and ``max`` values are equal, this progress bar has its indeterminate state
         set to ``True``.
 
-        :param websocket: Instance of :class:`~tornado_websockets.websocket.WebSocket`
         :param min: Minimum value
         :param max: Maximum value
-        :type websocket: tornado_websockets.websocket.WebSocket
         :type min: int
         :type max: int
     """
 
-    def __init__(self, websocket, min=0, max=100):
-        super(ProgressBar, self).__init__(websocket, 'module_progressbar_')
+    def __init__(self, name='', min=0, max=100, indeterminate=False):
+        if name:
+            name = '_' + name
+        super(ProgressBar, self).__init__('progressbar' + name)
 
         if max < min:
-            raise ValueError('`max` value (%d) can not be lower than `min` value (%d).' % (max, min))
+            raise ValueError('Param « min » can not be greater or equal than param « max ».')
 
-        self.min = min
+        self.min = self.current = min
         self.max = max
-        self._value = min
-        self.indeterminate = min is max
-        self.initialize()
+        self.indeterminate = indeterminate
 
     def initialize(self):
-        @self.websocket.on
+        @self._websocket.on
         def open():
             self.emit_init()
 
-    def reset(self):
-        """
-            Reset progress bar's progression to its minimum value.
-        """
-        self._value = self.min
-
     def tick(self, label=None):
         """
-            Increments progress bar's _value by ``1`` and emit ``update`` event. Can also emit ``done`` event if
+            Increments progress bar's _current by ``1`` and emit ``update`` event. Can also emit ``done`` event if
             progression is done.
 
             Call :meth:`~tornado_websockets.modules.progress_bar.ProgressBar.emit_update` method each time this
@@ -53,13 +46,19 @@ class ProgressBar(Module):
             :type label: str
         """
 
-        if not self.indeterminate and self._value < self.max:
-            self._value += 1
+        if not self.indeterminate and self.current < self.max:
+            self.current += 1
 
         self.emit_update(label)
 
         if self.is_done():
             self.emit_done()
+
+    def reset(self):
+        """
+            Reset progress bar's progression to its minimum value.
+        """
+        self.current = self.min
 
     def is_done(self):
         """
@@ -75,7 +74,7 @@ class ProgressBar(Module):
         if self.indeterminate:
             return False
 
-        if self.value is self.max:
+        if self.current is self.max:
             return True
 
         return False
@@ -93,7 +92,7 @@ class ProgressBar(Module):
             data.update({
                 'min': int(self.min),
                 'max': int(self.max),
-                'value': int(self._value),
+                'current': int(self.current),
             })
 
         self.emit('before_init')
@@ -111,7 +110,7 @@ class ProgressBar(Module):
         data = {}
 
         if not self.indeterminate:
-            data.update({'value': int(self._value)})
+            data.update({'current': self.current})
 
         if label:
             data.update({'label': label})
@@ -126,22 +125,3 @@ class ProgressBar(Module):
         """
 
         self.emit('done')
-
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        if not self.indeterminate and not self.min <= value <= self.max:
-            raise ValueError('Value is not in [%d; %d] range.' % (self.min, self.max))
-
-        self._value = value
-
-    @property
-    def context(self):
-        return self.websocket.context
-
-    @context.setter
-    def context(self, value):
-        self.websocket.context = value

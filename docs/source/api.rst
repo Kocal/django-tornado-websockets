@@ -27,18 +27,7 @@ TornadoWrapper
 .. automodule:: tornado_websockets.tornadowrapper
 
     .. autoclass:: TornadoWrapper
-    .. automethod:: TornadoWrapper.add_handlers
+    .. automethod:: TornadoWrapper.add_handler
     .. automethod:: TornadoWrapper.start_app
     .. automethod:: TornadoWrapper.loop
     .. automethod:: TornadoWrapper.listen
-
-Exceptions
-----------
-
-.. automodule:: tornado_websockets.exceptions
-
-    .. autoexception:: TornadoWebSocketsError
-    .. autoexception:: EmitHandlerError
-    .. autoexception:: InvalidInstanceError
-    .. autoexception:: NotCallableError
-    .. autoexception:: WebSocketEventAlreadyBinded

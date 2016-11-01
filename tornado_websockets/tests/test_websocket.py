@@ -1,507 +1,106 @@
 # coding: utf-8
 
-from __future__ import absolute_import, division, print_function, with_statement
+from unittest import TestCase
 
-import os
-import pprint
-import time
-import traceback
+import six
 
-from tornado.concurrent import Future
-from tornado.escape import json_encode, json_decode
-from tornado.httpclient import HTTPError
-from tornado.testing import gen_test
-from tornado.web import Application
-
-from tornado_websockets.exceptions import *
-from tornado_websockets.tests.app_counter import app_counter, app_counter_ws
-from tornado_websockets.tests.app_reserved_events import app_reserved_events_ws
-from tornado_websockets.tests.app_test import app_test_ws
-from tornado_websockets.tests.helpers import WebSocketBaseTestCase, TestWebSocketHandler
-from tornado_websockets.tests.test_tornadowrapper import TornadoWrapper_reset
-from tornado_websockets.tornadowrapper import TornadoWrapper
+from tornado_websockets.exceptions import NotCallableError
+from tornado_websockets.modules import ProgressBar
 from tornado_websockets.websocket import WebSocket
 from tornado_websockets.websockethandler import WebSocketHandler
 
-try:
-    import tornado.websocket  # noqa
-    from tornado.util import _websocket_mask_python
-except ImportError:
-    # The unittest module presents misleading errors on ImportError
-    # (it acts as if websocket_test could not be found, hiding the underlying
-    # error).  If we get an ImportError here (which could happen due to
-    # TORNADO_EXTENSION=1), print some extra information before failing.
-    traceback.print_exc()
-    raise
-
-# For Travis
-if os.environ.get('TRAVIS') is None:
-    SLEEPING_TIME = 0
+if six.PY2:
+    from mock import patch, Mock
 else:
-    SLEEPING_TIME = 1
-
-pp = pprint.PrettyPrinter(indent=4)
+    from unittest.mock import patch, Mock
 
 
-# --- HERE BEGIN REAL TESTS ---------------------------------------------------------------------------------------- #
+class TestWebSocket(TestCase):
+    """
+        Tests for the class « WebSocket ».
+    """
 
-class WebSocketTest(WebSocketBaseTestCase):
-    def get_app(self):
-        self.close_future = Future()
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
+    def test_construct(self, add_handler):
+        add_handler.assert_called_with(('/ws/path1', WebSocketHandler, {'websocket': WebSocket('path1')}))
+        add_handler.assert_called_with(('/ws/path2', WebSocketHandler, {'websocket': WebSocket('/path2')}))
+        add_handler.assert_called_with(('/ws/path3', WebSocketHandler, {'websocket': WebSocket('  path3  ')}))
+        add_handler.assert_called_with(('/ws/path4', WebSocketHandler, {'websocket': WebSocket('   /path4 ')}))
 
-        return Application([
-            ('/ws/test', TestWebSocketHandler, {'websocket': app_test_ws, 'close_future': self.close_future}),
-        ])
+        with self.assertRaisesRegexp(TypeError, '« Path » parameter should be a string.'):
+            WebSocket(path=1234)
 
-    @gen_test
-    def test_connection_existing_websocket(self):
-        ws_test = yield self.ws_connect('/ws/test')
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
+    def test_bind_module(self, add_handler):
+        ws = WebSocket('path')
+        module = ProgressBar('progress')
 
-        time.sleep(SLEEPING_TIME)
+        module.initialize = Mock()
 
-        # Useless, but just in case of. :-))
-        self.assertEqual(None, ws_test.close_code)
-        self.assertEqual(None, ws_test.close_reason)
+        self.assertListEqual(ws.modules, [])
+        self.assertIsNone(module._websocket)
+        module.initialize.assert_not_called()
 
-        self.close(ws_test)
+        ws.bind(module)
 
-    @gen_test
-    def test_connection_no_existing_websocket(self):
-        with self.assertRaises(HTTPError) as e:
-            yield self.ws_connect('/ws/i/do/not/exist')
+        self.assertListEqual(ws.modules, [module])
+        self.assertEqual(module._websocket, ws)
+        module.initialize.assert_called_with()
 
-        time.sleep(SLEEPING_TIME)
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
+    def test_on(self, add_handler):
+        ws = WebSocket('path')
 
-        self.assertEqual(e.exception.message, 'Not Found')
-        self.assertEqual(e.exception.code, 404)
+        self.assertDictEqual(ws.events, {})
 
-    @gen_test
-    def test_path(self):
-        ws1 = WebSocket('/prefixed_with_slash')
-        ws2 = WebSocket('not_prefixed_with_slash')
-        ws3 = WebSocket('   /prefixed_with_slash_with_spaces    ')
-        ws4 = WebSocket('   not_prefixed_with_slash             ')
-
-        time.sleep(SLEEPING_TIME)
-
-        self.assertEqual(ws1.path, '/prefixed_with_slash')
-        self.assertEqual(ws2.path, '/not_prefixed_with_slash')
-        self.assertEqual(ws3.path, '/prefixed_with_slash_with_spaces')
-        self.assertEqual(ws4.path, '/not_prefixed_with_slash')
-
-    @gen_test
-    def test_add_to_tornado_handlers(self):
-        TornadoWrapper_reset()
-        self.assertListEqual(TornadoWrapper.handlers, [])
-
-        ws = WebSocket('/my_ws')
-        self.assertListEqual(TornadoWrapper.handlers, [
-            ('/ws/my_ws', WebSocketHandler, {'websocket': ws})
-        ])
-
-    @gen_test
-    def test_not_add_to_handlers(self):
-        TornadoWrapper_reset()
-        self.assertListEqual(TornadoWrapper.handlers, [])
-
-        ws = WebSocket('/my_ws', False)
-        self.assertListEqual(TornadoWrapper.handlers, [])
-
-    @gen_test
-    def test_decorator_on_on_not_callable(self):
-        ws = WebSocket('/abc')
-
-        time.sleep(SLEEPING_TIME)
-
-        with self.assertRaises(NotCallableError) as e:
-            @ws.on('my_event')
-            def my_method():
-                pass
-
-        self.assertEqual(e.exception.thing, 'my_event')
-        self.assertEqual(
-            str(e.exception),
-            'Used @WebSocket.on decorator on a thing that is not callable, got: "%s".' % 'my_event'
-        )
-
-    @gen_test
-    def test_decorator_on_on_callable(self):
-        ws = WebSocket('/abc')
-
-        time.sleep(SLEEPING_TIME)
+        with self.assertRaises(NotCallableError):
+            ws.on('string')
 
         @ws.on
-        def my_method():
+        def func():
             pass
 
-    @gen_test
-    def test_decorator_on_with_already_binded_event(self):
-        ws = WebSocket('/abc')
+        self.assertDictEqual(ws.events, {'func': func})
 
-        time.sleep(SLEEPING_TIME)
+    @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
+    def test_emit(self, add_handler):
+        ws = WebSocket('path')
+        handler = Mock()
 
-        @ws.on
-        def my_method():
-            pass
+        # Emulate WebSocketHandler class with Mock, because only Tornado can instantiate it properly
+        def side_effect(websocket):
+            ws.handlers.append(handler)
+            handler.websocket = websocket
 
-        with self.assertRaises(WebSocketEventAlreadyBinded) as e:
-            @ws.on
-            def my_method():
-                pass
+        handler.return_value = None
+        handler.websocket = None
+        handler.initialize.side_effect = side_effect
+        handler.emit = Mock()
 
-        self.assertEqual(e.exception.event, 'my_method')
-        self.assertEqual(e.exception.path, '/abc')
-        self.assertEqual(
-            str(e.exception),
-            'The event "%s" is already binded for "%s" path.' % ('my_method', '/abc')
-        )
+        self.assertListEqual(ws.handlers, [])
+        self.assertIsNone(handler.websocket)
 
-    @gen_test
-    def test_emit_outside_on_decorator(self):
-        ws = WebSocket('/abc')
+        handler.initialize(ws)
 
-        time.sleep(SLEEPING_TIME)
+        self.assertListEqual(ws.handlers, [handler])
+        self.assertEqual(handler.websocket, ws)
 
-        with self.assertRaises(EmitHandlerError) as e:
-            ws.emit('my_event', 'my_message')
+        with self.assertRaisesRegexp(TypeError, 'Param « event » should be a string.'):
+            ws.emit(123)
+        handler.emit.assert_not_called()
 
-        self.assertEqual(e.exception.event, 'my_event')
-        self.assertEqual(e.exception.path, '/abc')
-        self.assertEqual(
-            str(e.exception),
-            'Can not emit "%s" event in "%s" path, emit() should be used in a function or class method'
-            ' decorated by @WebSocket.on decorator.' % ('my_event', '/abc')
-        )
+        ws.emit('event')
+        handler.emit.assert_called_with('event', {})
+        handler.emit.reset_mock()
 
-    @gen_test
-    def test_emit_with_bad_handlers(self):
-        ws = WebSocket('/abc')
-        ws.handlers = ['not_an_handler']
+        ws.emit('event', {})
+        handler.emit.assert_called_with('event', {})
+        handler.emit.reset_mock()
 
-        time.sleep(SLEEPING_TIME)
+        ws.emit('event', 'my message')
+        handler.emit.assert_called_with('event', {'message': 'my message'})
+        handler.emit.reset_mock()
 
-        with self.assertRaises(InvalidInstanceError) as e:
-            ws.emit('my_event')
-
-        self.assertEqual(e.exception.actual_instance, 'not_an_handler')
-        self.assertEqual(e.exception.expected_instance_name, 'tornado_websockets.websockethandler.WebSocketHandler')
-        self.assertEqual(
-            str(e.exception),
-            'Expected instance of "%s", got "%s" instead.' % (
-                'tornado_websockets.websockethandler.WebSocketHandler', repr('not_an_handler')
-            )
-        )
-
-    @gen_test
-    def test_emit_with_bad_parameter_event(self):
-        ws = WebSocket('/abc')
-        ws.handlers = ['not_an_handler']
-
-        time.sleep(SLEEPING_TIME)
-
-        with self.assertRaises(TypeError) as e:
-            ws.emit(12345)
-
-        self.assertEqual(str(e.exception), 'Event should be a string.')
-
-    @gen_test
-    def test_emit_with_good_parameter_event(self):
-        ws = WebSocket('/abc')
-        ws.handlers = ['not_an_handler']
-
-        time.sleep(SLEEPING_TIME)
-
-        # It raises an InvalidInstanceError because we override ws's handlers to dodge EmitHandlerError exception,
-        # and we can't get a real WebSocketHandler to use with this ws. But it works
-        with self.assertRaises(InvalidInstanceError) as e:
-            ws.emit('my_event')
-
-    @gen_test
-    def test_emit_with_bad_parameter_data(self):
-        ws = WebSocket('/abc')
-        ws.handlers = ['handler']
-
-        time.sleep(SLEEPING_TIME)
-
-        with self.assertRaises(TypeError) as e:
-            ws.emit('my_event', 123)
-
-        self.assertEqual(str(e.exception), 'Data should be a string or a dictionary.')
-
-    @gen_test
-    def test_emit_with_good_parameter_data(self):
-        ws = WebSocket('/abc')
-        ws.handlers = ['not_an_handler']
-
-        time.sleep(SLEEPING_TIME)
-
-        # It raises an InvalidInstanceError because we override ws's handlers to dodge EmitHandlerError exception,
-        # and we can't get a real WebSocketHandler to use with this ws. But it works.
-        with self.assertRaises(InvalidInstanceError):
-            ws.emit('my_event')
-
-        with self.assertRaises(InvalidInstanceError):
-            ws.emit('my_event', {'a': 'dictionary'})
-
-        with self.assertRaises(InvalidInstanceError):
-            ws.emit('my_event', 'a_string')
-
-
-class WebSocketAppTestTest(WebSocketBaseTestCase):
-    def get_app(self):
-        self.close_future = Future()
-
-        return Application([
-            ('/ws/test', TestWebSocketHandler, {'websocket': app_test_ws, 'close_future': self.close_future}),
-        ])
-
-    @gen_test
-    def test_send_invalid_json(self):
-        ws = yield self.ws_connect('/ws/test')
-
-        time.sleep(SLEEPING_TIME)
-        yield ws.write_message('Not a JSON string.')
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'warning',
-            'data': {
-                'message': 'Invalid JSON was sent.',
-            }
-        })
-
-        self.close(ws)
-
-    @gen_test
-    def test_send_without_event(self):
-        ws = yield self.ws_connect('/ws/test')
-
-        time.sleep(SLEEPING_TIME)
-        yield ws.write_message(json_encode({
-            'json': 'I am a JSON'
-        }))
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'warning',
-            'data': {
-                'message': 'There is no event in this JSON.',
-            }
-        })
-
-        self.close(ws)
-
-    @gen_test
-    def test_send_with_registered_event(self):
-        ws = yield self.ws_connect('/ws/test')
-
-        time.sleep(SLEEPING_TIME)
-        yield ws.write_message(json_encode({
-            'event': 'existing_event'
-        }))
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'apptest_existing_event',
-            'data': {
-                'message': 'I am "existing_event" from "{}" websocket application.'.format(app_test_ws)
-            }
-        })
-
-        self.close(ws)
-
-    @gen_test
-    def test_send_with_existing_event_and_invalid_data_format(self):
-        ws = yield self.ws_connect('/ws/test')
-
-        time.sleep(SLEEPING_TIME)
-        yield ws.write_message(json_encode({
-            'event': 'existing_event',
-            'data': 'not a dictionary'
-        }))
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'warning',
-            'data': {
-                'message': 'The data should be a dictionary.',
-            }
-        })
-
-        self.close(ws)
-
-
-class WebSocketAppCounterTest(WebSocketBaseTestCase):
-    def get_app(self):
-        self.close_future = Future()
-        return Application([
-            ('/ws/counter', TestWebSocketHandler, {'websocket': app_counter_ws, 'close_future': self.close_future}),
-        ])
-
-    @gen_test
-    def test_emit_connection(self):
-        ws = yield self.ws_connect('/ws/counter')
-
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'counter_connection',
-            'data': {
-                'message': 'Got new connection.',
-                'counter_value': 0  # Initial value of counter
-            }
-        })
-
-        self.close(ws)
-
-    @gen_test
-    def test_emit_setup_without_counter_value(self):
-        ws = yield self.ws_connect('/ws/counter')
-
-        time.sleep(SLEEPING_TIME)
-        yield ws.read_message()
-        yield ws.write_message(json_encode({
-            'event': 'setup'
-        }))
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'counter_error',
-            'data': {
-                'message': 'Setup initial counter value: FAIL.',
-                'details': 'Can not get "value" from data.'
-            }
-        })
-
-        self.close(ws)
-
-    @gen_test
-    def test_emit_setup_with_bad_counter_value_type(self):
-        ws = yield self.ws_connect('/ws/counter')
-
-        time.sleep(SLEEPING_TIME)
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'counter_connection',
-            'data': {
-                'message': 'Got new connection.',
-                'counter_value': 0  # Initial value of counter
-            }
-        })
-
-        yield ws.write_message(json_encode({
-            'event': 'setup',
-            'data': {
-                'counter_value': 'not_an_integer'
-            }
-        }))
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'counter_error',
-            'data': {
-                'message': 'Setup initial counter value: FAIL.',
-                'details': '"value" is not an integer.'
-            }
-        })
-
-        self.close(ws)
-
-    @gen_test(timeout=20)
-    def test_emit_setup_with_good_value(self):
-        counter_value = 50
-        ws = yield self.ws_connect('/ws/counter')
-
-        # Tests for first client
-
-        self.assertEqual(app_counter.counter, 0)
-
-        time.sleep(SLEEPING_TIME)
-        yield ws.read_message()
-        yield ws.write_message(json_encode({
-            'event': 'setup',
-            'data': {
-                'counter_value': counter_value
-            }
-        }))
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'counter_after_setup',
-            'data': {
-                'message': 'Setup initial counter value: OK.',
-                'counter_value': counter_value
-            }
-        })
-
-        self.assertEqual(app_counter.counter, counter_value)
-
-        # Tests for second client
-
-        counter_value += 1  # 51
-        ws2 = yield self.ws_connect('/ws/counter')
-
-        time.sleep(SLEEPING_TIME)
-        yield ws2.read_message()
-        yield ws2.write_message(json_encode({'event': 'increment'}))
-        time.sleep(SLEEPING_TIME)
-
-        response = yield ws2.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'counter_increment',
-            'data': {
-                'counter_value': counter_value  # 51
-            }
-        })
-
-        self.assertEqual(app_counter.counter, counter_value)
-
-        self.close(ws)
-        self.close(ws2)
-
-
-class WebSocketAppReservedEventsTest(WebSocketBaseTestCase):
-    def get_app(self):
-        self.close_future = Future()
-        return Application([
-            ('/ws/reserved_events', TestWebSocketHandler, {
-                'websocket': app_reserved_events_ws,
-                'close_future': self.close_future
-            }),
-        ])
-
-    @gen_test
-    def test_existing_event_open_1(self):
-        ws = yield self.ws_connect('/ws/reserved_events')
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'appreservedevents_connection',
-            'data': {
-                'connections_count': 1
-            }
-        })
-
-        self.close(ws)  # do not call tornado_websockets.WebSocketHandler.on_close()
-
-    @gen_test
-    def test_existing_event_open_2(self):
-        ws = yield self.ws_connect('/ws/reserved_events')
-
-        response = yield ws.read_message()
-        self.assertDictEqual(json_decode(response), {
-            'event': 'appreservedevents_connection',
-            'data': {
-                'connections_count': 2
-            }
-        })
-
-        self.close(ws)  # do not call tornado_websockets.WebSocketHandler.on_close()
+        with self.assertRaisesRegexp(TypeError, 'Param « data » should be a string or a dictionary.'):
+            ws.emit('event', 123)
+        handler.emit.assert_not_called()
