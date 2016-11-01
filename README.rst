@@ -2,13 +2,13 @@ django-tornado-websockets
 =========================
 
 .. image:: https://travis-ci.org/Kocal/django-tornado-websockets.svg?branch=master
-    :target: https://travis-ci.org/Kocal/django-tornado-websockets
+   :target: https://travis-ci.org/Kocal/django-tornado-websockets
 
 .. image:: https://coveralls.io/repos/github/Kocal/django-tornado-websockets/badge.svg?branch=master
-    :target: https://coveralls.io/github/Kocal/django-tornado-websockets?branch=master
+   :target: https://coveralls.io/github/Kocal/django-tornado-websockets?branch=master
 
 .. image:: https://badge.fury.io/py/django-tornado-websockets.svg
-    :target: https://badge.fury.io/py/django-tornado-websockets
+   :target: https://badge.fury.io/py/django-tornado-websockets
 
 Django-tornado-websockets is a useful solution to provide an easy way to use Tornado WebSockets with a Django
 application.
@@ -16,24 +16,24 @@ application.
 Supported versions
 ------------------
 
-=========  ===================================================================
-Symbol     Meaning
-=========  ===================================================================
-**✅**      Works like a charm
-**⚠**      Works even if Python X.Y is not officially supported by Django X.Y
-**.**      Waiting for Django X.Y release
-<empty>    Django X.Y is not compatible with Python X.Y
-=========  ===================================================================
+===================  ===================================================================
+Symbol               Meaning
+===================  ===================================================================
+\:white_check_mark:  Works like a charm
+\:warning:           Works even if Python X.Y is not officially supported by Django X.Y
+**.**                Waiting for Django X.Y release
+<empty>              Django X.Y is not compatible with Python X.Y
+===================  ===================================================================
 
-======  ==========  ==========  ==========  ==========  ==========  ==========
-Django  Python 2.7  Python 3.3  Python 3.4  Python 3.5  Python 3.6  Python 3.7
-======  ==========  ==========  ==========  ==========  ==========  ==========
-1.8     **☑️**       **☑️**     **☑️**      **☑️**      **⚠**       **⚠**
-1.9     **☑️**                  **☑️**      **☑️**      **⚠**       **⚠**
-1.10    **☑️**                  **☑️**      **☑️**      **⚠**       **⚠**
-1.11    **.**                   **.**       **.**       **.**       **.**
-2.0                                         **.**       **.**       **.**
-======  ==========  ==========  ==========  ==========  ==========  ==========
+======  ===================  ===================  ===================  ===================  ==========  ==========
+Django  Python 2.7           Python 3.3           Python 3.4           Python 3.5           Python 3.6  Python 3.7
+======  ===================  ===================  ===================  ===================  ==========  ==========
+1.8     \:white_check_mark:  \:white_check_mark:  \:white_check_mark:  \:white_check_mark:  \:warning:  \:warning:
+1.9     \:white_check_mark:                       \:white_check_mark:  \:white_check_mark:  \:warning:  \:warning:
+1.10    \:white_check_mark:                       \:white_check_mark:  \:white_check_mark:  \:warning:  \:warning:
+1.11    **.**                                     **.**                **.**                **.**       **.**
+2.0                                                                    **.**                **.**       **.**
+======  ===================  ===================  ===================  ===================  ==========  ==========
 
 Documentation
 -------------
