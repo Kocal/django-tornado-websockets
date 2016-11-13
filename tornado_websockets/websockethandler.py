@@ -36,8 +36,9 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             Called when the WebSocket is opened
         """
 
-        if self.websocket.events.get('open'):
-            self.on_message('{"event": "open", "data": {}}')
+        for event in self.websocket.events:
+            if event.endswith('open'):
+                self.on_message('{"event": "%s", "data": {}}' % event)
 
     def check_origin(self, origin):
         return True

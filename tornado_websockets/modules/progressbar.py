@@ -28,7 +28,7 @@ class ProgressBar(Module):
         self.indeterminate = indeterminate
 
     def initialize(self):
-        @self._websocket.on
+        @self.on
         def open():
             self.emit_init()
 

@@ -4,6 +4,7 @@ from unittest import TestCase
 import six
 import tornado.web
 from tornado.concurrent import Future
+from tornado.escape import json_decode
 from tornado.testing import gen_test
 
 from tornado_websockets.modules import ProgressBar
@@ -246,12 +247,26 @@ class TestModuleProgressBarCommunication(WebSocketBaseTestCase):
 
     @gen_test
     def test_open_event(self):
+        @self.ws.on
+        def open():
+            self.ws.emit('opened')
+
         module_pb = ProgressBar()
         module_pb.emit_init = Mock()
         self.ws.bind(module_pb)
 
         ws_connection = yield self.ws_connect('/ws/module/pb')
 
+        # 1st: clasical websocket on open event
+        response = yield ws_connection.read_message()
+        response = json_decode(response)
+
+        self.assertDictEqual(response, {
+            'event': 'opened',
+            'data': {}
+        })
+
+        # 2nd: ProgressBar module on open event
         module_pb.emit_init.assert_called_with()
 
         self.close(ws_connection)
