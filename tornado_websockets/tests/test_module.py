@@ -39,7 +39,7 @@ class TestModule(TestCase):
 
         self.assertIsNone(module._websocket)
         with self.assertRaisesRegexp(AttributeError, "'NoneType' object has no attribute 'context'"):
-            a = module.context
+            print(module.context)
 
         ws.bind(module)
 
@@ -59,7 +59,7 @@ class TestModule(TestCase):
         self.assertIsNone(moduleBar._websocket)
         with self.assertRaisesRegexp(AttributeError, "'NoneType' object has no attribute 'on'"):
             @moduleBar.on
-            def func():
+            def func_a():
                 pass
 
         # Module is now binded to WebSocket instance
@@ -71,10 +71,10 @@ class TestModule(TestCase):
         self.assertEqual(moduleBar._websocket, ws)
 
         @moduleBar.on
-        def func():
+        def func_b():
             pass
 
-        self.assertDictEqual(ws.events, {'module_mymodule_bar_func': func})
+        self.assertDictEqual(ws.events, {'module_mymodule_bar_func_b': func_b})
 
     @patch('tornado_websockets.tornadowrapper.TornadoWrapper.add_handler')
     def test_emit(self, add_handler):

@@ -12,7 +12,9 @@ import tornado.websocket
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     """
-        Represents a WebSocket connection, wrapper of `tornado.websocket.WebSocketHandler <http://www.tornadoweb.org/en/stable/websocket.html#event-handlers>`_ class.
+        Represents a WebSocket connection, wrapper of
+        `tornado.websocket.WebSocketHandler <http://www.tornadoweb.org/en/stable/websocket.html#event-handlers>`_
+        class.
 
         This class should not be instantiated directly; use the :class:`~tornado_websockets.websocket.WebSocket` class
         instead.
@@ -36,8 +38,9 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             Called when the WebSocket is opened
         """
 
-        if self.websocket.events.get('open'):
-            self.on_message('{"event": "open", "data": {}}')
+        for event in self.websocket.events:
+            if event.endswith('open'):
+                self.on_message('{"event": "%s", "data": {}}' % event)
 
     def check_origin(self, origin):
         return True

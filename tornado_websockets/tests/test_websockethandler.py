@@ -33,7 +33,7 @@ class WebSocketHandlerTest(WebSocketBaseTestCase):
 
     @gen_test
     def test_connection_on_non_existing_websocket(self):
-        with self.assertRaisesRegexp(tornado.httpclient.HTTPError, 'HTTP 404: Not Found') as e:
+        with self.assertRaisesRegexp(tornado.httpclient.HTTPError, 'HTTP 404: Not Found'):
             yield self.ws_connect('/ws/foo/bar')
 
     @gen_test
