@@ -2,7 +2,7 @@
 
 from six import string_types
 
-from .exceptions import *
+from .exceptions import NotCallableError
 from .tornadowrapper import TornadoWrapper
 from .websockethandler import WebSocketHandler
 
@@ -50,7 +50,7 @@ class WebSocket(object):
             Should be used as a decorator.
 
             It will execute the decorated function when :class:`~tornado_websockets.websockethandler.WebSocketHandler`
-            will receive an event where its name correspond to the function one (by using ``__name__`` magic attribute).
+            will receive an event where its name correspond to the function (by using ``__name__`` magic attribute).
 
             :param callback: Function to decorate.
             :type callback: callable
@@ -78,7 +78,8 @@ class WebSocket(object):
             :param data: a dictionary or a string which will be converted to ``{'message': data}``
             :type event: str
             :type data: dict or str
-            :raise: :class:`~tornado_websockets.exceptions.EmitHandlerError` if not used inside :meth:`@WebSocket.on() <tornado_websockets.websocket.WebSocket.on>` decorator.
+            :raise: :class:`~tornado_websockets.exceptions.EmitHandlerError` if not used inside
+                    :meth:`@WebSocket.on() <tornado_websockets.websocket.WebSocket.on>` decorator.
             :raise: :class:`tornado.websocket.WebSocketClosedError` if connection is closed.
 
             .. warning::
@@ -100,4 +101,6 @@ class WebSocket(object):
         if not isinstance(data, dict):
             raise TypeError('Param « data » should be a string or a dictionary.')
 
-        [_.emit(event, data) for _ in self.handlers if self.handlers]
+        if self.handlers:
+            for handler in self.handlers:
+                handler.emit(event, data)

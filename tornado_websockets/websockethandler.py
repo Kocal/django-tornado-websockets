@@ -12,7 +12,9 @@ import tornado.websocket
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     """
-        Represents a WebSocket connection, wrapper of `tornado.websocket.WebSocketHandler <http://www.tornadoweb.org/en/stable/websocket.html#event-handlers>`_ class.
+        Represents a WebSocket connection, wrapper of
+        `tornado.websocket.WebSocketHandler <http://www.tornadoweb.org/en/stable/websocket.html#event-handlers>`_
+        class.
 
         This class should not be instantiated directly; use the :class:`~tornado_websockets.websocket.WebSocket` class
         instead.

@@ -121,7 +121,8 @@ class ProgressBar(Module):
 
     def emit_done(self):
         """
-            Emit ``done`` event when progress bar's progression :meth:`~tornado_websockets.modules.progress_bar.ProgressBar.is_done`.
+            Emit ``done`` event when progress bar's progression
+            :meth:`~tornado_websockets.modules.progress_bar.ProgressBar.is_done`.
         """
 
         self.emit('done')
