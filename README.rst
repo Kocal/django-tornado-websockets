@@ -1,3 +1,7 @@
+
+DEPRECATED SINCE DJANGO-CHANNELS, SEE https://github.com/django/channels
+========================================================================
+
 django-tornado-websockets
 =========================
 
